@@ -25,3 +25,4 @@ This is a fun game project where a player character can move, jump, animate, and
 1. Make sure you have Python and Pygame installed on your system:
    ```bash
    pip install pygame
+   python main.py
