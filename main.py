@@ -52,7 +52,7 @@ def draw_bg():
     
 # define game variables
 gravity = 0.75
-
+tile_size = 50
 
 #define player action variables
 moving_left = False
@@ -216,14 +216,17 @@ class Bullet(pygame.sprite.Sprite):
             self.kill()
 
         #check collision with characters
+        #player
         if pygame.sprite.spritecollide(player, bullet_group, False):
             if player.alive:
                 player.health -=5
                 self.kill()
-        if pygame.sprite.spritecollide(enemy, bullet_group, False):
-            if enemy.alive:
-                enemy.health -= 25
-                self.kill()
+        #enemy
+        for enemy in enemy_group:
+            if pygame.sprite.spritecollide(enemy, bullet_group, False):
+                if enemy.alive:
+                    enemy.health -= 25
+                    self.kill()
 
 
 class Grenade(pygame.sprite.Sprite):
@@ -255,15 +258,88 @@ class Grenade(pygame.sprite.Sprite):
         #update grenade position
         self.rect.x += dx
         self.rect.y += dy
+        
+        #countdown timer for grenade explosion
+        self.timer -= 1
+        if self.timer <= 0:
+            self.kill()
+            explosion = Explosion(self.rect.x, self.rect.y, 0.5)
+            explosion_group.add(explosion)
+            
+            #do damade to anyone nearby
+            if player.alive:
+                self.deal_damage_to(player)
+
+            for enemy in enemy_group:
+                if enemy.alive:
+                    self.deal_damage_to(enemy)
+    
+    def deal_damage_to(self, target):
+            # Calculate distance in tiles 
+            distance_x = abs(self.rect.centerx - target.rect.centerx)
+            distance_y = abs(self.rect.centery - target.rect.centery)
+            
+            # Within 1 tile range - severe damage
+            if distance_x < tile_size and distance_y < tile_size:
+                target.health -= 80
+            # Within 2 tile range - medium damage
+            elif distance_x < tile_size * 2 and distance_y < tile_size * 2:
+                target.health -= 50
+            # Within 3 tile range - light damage
+            elif distance_x < tile_size * 3 and distance_y < tile_size * 3:
+                target.health -= 30
+    
+
+
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, x, y, scale):
+        pygame.sprite.Sprite.__init__(self)
+        
+        #handle explosion images
+        self.images = []
+        for num in range(1,6):
+            img = pygame.image.load(f"shooter_assets/img/explosion/exp{num}.png").convert_alpha()
+            img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
+            self.images.append(img)
+        
+        self.frame_index = 0
+        self.image = self.images[self.frame_index]
+        self.rect = self.image.get_rect()
+        self.rect.center = (x,y)
+        self.counter = 0
+
+    
+    def update(self):
+        explosion_speed = 3
+        
+        #update explosion animation
+        self.counter += 1
+        
+        if self.counter >= explosion_speed:
+            self.counter = 0
+            self.frame_index += 1
+            
+            #if the animation is complete, then delete the explosion
+            if self.frame_index >= len(self.images):
+                self.kill()
+            else:
+                self.image = self.images[self.frame_index]
+    
 
 
 #create sprite groups
+enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
 grenade_group = pygame.sprite.Group()
+explosion_group = pygame.sprite.Group()
                 
     
 player = Player("player", 200, 200, 2, 5, 20, 5)
 enemy = Player("enemy", 200, 365, 2, 5, 20, 0)
+enemy2 = Player("enemy", 400, 365, 2, 5, 20, 0)
+enemy_group.add(enemy)
+enemy_group.add(enemy2)
+
 
 run = True
 while run:
@@ -274,8 +350,9 @@ while run:
     player.update()
     player.draw()
     
-    enemy.update()
-    enemy.draw()
+    for enemy in enemy_group:
+        enemy.update()
+        enemy.draw()
     
     #update and draw groups
     bullet_group.update()
@@ -284,6 +361,8 @@ while run:
     grenade_group.update()
     grenade_group.draw(screen)
     
+    explosion_group.update()
+    explosion_group.draw(screen)
     
     #update player actions
     if player.alive:
@@ -308,7 +387,7 @@ while run:
         else:
             player.update_action(0) #0: idle
         
-    player.move(moving_left, moving_right)
+        player.move(moving_left, moving_right)
     
     
     for event in pygame.event.get():
