@@ -201,7 +201,7 @@ class Player(pygame.sprite.Sprite):
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
         pygame.sprite.Sprite.__init__(self)
-        self.speed = 10
+        self.speed = 5
         self.image = bullet_img
         self.rect = self.image.get_rect()
         self.rect.center = (x,y)
@@ -281,7 +281,7 @@ class Grenade(pygame.sprite.Sprite):
             
             # Within 1 tile range - severe damage
             if distance_x < tile_size and distance_y < tile_size:
-                target.health -= 80
+                target.health -= 100
             # Within 2 tile range - medium damage
             elif distance_x < tile_size * 2 and distance_y < tile_size * 2:
                 target.health -= 50
