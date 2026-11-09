@@ -234,7 +234,7 @@ class Grenade(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.timer = 100
         self.speed = 7
-        self.vel_y = -11
+        self.vel_y = -9
         self.image = grenade_img
         self.rect = self.image.get_rect()
         self.rect.center = (x,y)
