@@ -1,5 +1,6 @@
 import pygame
 import os
+import random
 
 pygame.init()
 
@@ -19,10 +20,16 @@ fps = 60
 bullet_img = pygame.image.load("shooter_assets/img/icons/bullet.png").convert_alpha()
 #grenade
 grenade_img = pygame.image.load("shooter_assets/img/icons/grenade.png").convert_alpha()
+
 #pick up boxes
 health_box_image = pygame.image.load("shooter_assets/img/icons/health_box.png").convert_alpha()
+health_box_image = pygame.transform.scale(health_box_image, (int(health_box_image.get_width() * 0.75), int(health_box_image.get_height()* 0.75)))
+
 ammo_box_image = pygame.image.load("shooter_assets/img/icons/ammo_box.png").convert_alpha()
+ammo_box_image = pygame.transform.scale(ammo_box_image, (int(ammo_box_image.get_width() * 0.75), int(ammo_box_image.get_height()* 0.75)))
+
 grenade_box_image = pygame.image.load("shooter_assets/img/icons/grenade_box.png").convert_alpha()
+grenade_box_image = pygame.transform.scale(grenade_box_image, (int(grenade_box_image.get_width() * 0.75), int(grenade_box_image.get_height()* 0.75)))
 
 item_boxes = {
     "Health"  : health_box_image,
@@ -106,7 +113,13 @@ class Player(pygame.sprite.Sprite):
         self.action = 0
         self.update_time = pygame.time.get_ticks()
         
-                
+        # npc(enemy) specific varibales
+        self.npc_move_counter = 0
+        self.npc_idling = False
+        self.npc_idling_counter = 0
+        self.npc_vision = pygame.Rect(0, 0, 150, 20)
+        
+        
         # PLayer Action Animation
         
         #load all images for the players
@@ -176,10 +189,51 @@ class Player(pygame.sprite.Sprite):
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:
             self.shoot_cooldown = 20
-            bullet = Bullet(self.rect.centerx + (0.6 * self.rect.size[0] * self.direction), self.rect.centery, self.direction) #self.rect.size[0] is player width
+            bullet = Bullet(self.rect.centerx + (0.8 * self.rect.size[0] * self.direction), self.rect.centery, self.direction) #self.rect.size[0] is player width
             bullet_group.add(bullet)
             self.ammo -= 1 #reduce ammo
                     
+    
+    
+    def move_npcs(self):
+        
+        if self.alive and player.alive:
+            
+            if self.npc_idling == False and random.randint(1, 600) == 1: # to prevent increasing idling counter when sitting idle
+                self.update_action(0) # 0: idle
+                self.npc_idling = True
+                self.npc_idling_counter = 200
+            
+            #check if the enemy is near the player
+            if self.npc_vision.colliderect(player.rect):
+                #stop running and face the player
+                self.update_action(0) # 0:idle
+                #shoot
+                self.shoot()
+            else:
+                if self.npc_idling == False:
+                    
+                    if self.direction == 1:
+                        npc_moving_right = True
+                    else:
+                        npc_moving_right = False
+                    
+                    npc_moving_left = not npc_moving_right
+                    self.move(npc_moving_left, npc_moving_right)
+                    
+                    self.update_action(1) # run animation
+                    self.npc_move_counter += 1
+                    # update npc vision as the enemy moves
+                    self.npc_vision.center = (self.rect.centerx + 65 * self.direction, self.rect.centery)
+                    
+                    if self.npc_move_counter > tile_size:
+                        self.direction *= -1
+                        self.npc_move_counter *= -1 # multiply by 0, to make npc move within 1/2x space
+                        
+                else:
+                    self.npc_idling_counter -= 1
+                    if self.npc_idling_counter <= 0:
+                        self.npc_idling = False
         
     def update_animation(self):
         #update animation
@@ -407,12 +461,12 @@ item_box_group = pygame.sprite.Group()
 # create instances
 
 # create player & it's instances
-player = Player("player", 200, 200, 2, 5, 20, 5) # parameters: char_type, x, y, scale, speed, ammo, grenades
+player = Player("player", 200, 200, 1.85, 5, 20, 5) # parameters: char_type, x, y, scale, speed, ammo, grenades
 health_bar = HealthBar(80, 10, player.health, player.max_health)
 
 # create enemy
-enemy = Player("enemy", 400, 365, 2, 5, 20, 0)
-enemy2 = Player("enemy", 600, 365, 2, 5, 20, 0)
+enemy = Player("enemy", 300, 365, 1.85, 2, 20, 0)
+enemy2 = Player("enemy", 600, 365, 1.85, 2, 20, 0)
 enemy_group.add(enemy)
 enemy_group.add(enemy2)
 
@@ -457,6 +511,7 @@ while run:
     player.draw()
     
     for enemy in enemy_group:
+        enemy.move_npcs()
         enemy.update()
         enemy.draw()
     
