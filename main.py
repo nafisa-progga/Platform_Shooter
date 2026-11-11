@@ -19,6 +19,16 @@ fps = 60
 bullet_img = pygame.image.load("shooter_assets/img/icons/bullet.png").convert_alpha()
 #grenade
 grenade_img = pygame.image.load("shooter_assets/img/icons/grenade.png").convert_alpha()
+#pick up boxes
+health_box_image = pygame.image.load("shooter_assets/img/icons/health_box.png").convert_alpha()
+ammo_box_image = pygame.image.load("shooter_assets/img/icons/ammo_box.png").convert_alpha()
+grenade_box_image = pygame.image.load("shooter_assets/img/icons/grenade_box.png").convert_alpha()
+
+item_boxes = {
+    "Health"  : health_box_image,
+    "Ammo"    : ammo_box_image,
+    "Grenade" : grenade_box_image
+}
 
 
 # Load ground tile images
@@ -198,6 +208,38 @@ class Player(pygame.sprite.Sprite):
         screen.blit(pygame.transform.flip(self.player_img, self.flip, False), self.rect)
 
 
+
+class ItemBox(pygame.sprite.Sprite):
+    
+    def __init__(self, item_type, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.item_type = item_type
+        self.image = item_boxes[self.item_type]
+        self.rect = self.image.get_rect()
+        self.rect.midtop = ( (x + tile_size // 2), ( y + ( tile_size - self.image.get_height() ) ) )
+        
+        
+    def update(self):
+        # check if the player has picked up the box
+        if pygame.sprite.collide_rect(self, player):
+            
+            #check what kind of box it was
+            if self.item_type == "Health":
+                player.health += 25
+                
+                if player.health > player.max_health:
+                    player.health = player.max_health
+                    
+            elif self.item_type == "Ammo":
+                player.ammo += 15
+                
+            elif self.item_type == "Grenade":
+                player.grenades += 2
+            
+            # delete the item box
+            self.kill()
+
+
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
         pygame.sprite.Sprite.__init__(self)
@@ -332,13 +374,24 @@ enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
 grenade_group = pygame.sprite.Group()
 explosion_group = pygame.sprite.Group()
+item_box_group = pygame.sprite.Group()
                 
-    
+
+# create instances    
 player = Player("player", 200, 200, 2, 5, 20, 5)
 enemy = Player("enemy", 200, 365, 2, 5, 20, 0)
 enemy2 = Player("enemy", 400, 365, 2, 5, 20, 0)
 enemy_group.add(enemy)
 enemy_group.add(enemy2)
+
+
+# temp = create item boxes
+item_box = ItemBox("Health", 100, 350)
+item_box_group.add(item_box)
+item_box = ItemBox("Ammo", 400, 350)
+item_box_group.add(item_box)
+item_box = ItemBox("Grenade", 500, 350)
+item_box_group.add(item_box)
 
 
 run = True
@@ -363,6 +416,10 @@ while run:
     
     explosion_group.update()
     explosion_group.draw(screen)
+    
+    item_box_group.update()
+    item_box_group.draw(screen)
+        
     
     #update player actions
     if player.alive:
