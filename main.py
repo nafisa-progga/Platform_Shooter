@@ -107,8 +107,6 @@ def draw_text(text, font, text_color, x , y):
             #screen.blit(img_list[3], (x, y))
 
 
-
-
 class Player(pygame.sprite.Sprite):
     def __init__(self, char_type, x, y, scale, speed, ammo, grenades):
         pygame.sprite.Sprite.__init__(self)
@@ -155,11 +153,13 @@ class Player(pygame.sprite.Sprite):
                 temp_list.append(player_img)
             self.animation_list.append(temp_list)
         
-            
+        
         self.player_img = self.animation_list[self.action][self.frame_index]
         self.rect = self.player_img.get_rect()
         self.rect.center = (x, y)
-        
+        self.width = self.player_img.get_width()
+        self.height = self.player_img.get_height()
+    
     
     def update(self):
         self.update_animation()
@@ -196,22 +196,43 @@ class Player(pygame.sprite.Sprite):
             self.y_vel = 10
         dy += self.y_vel
         
-        #check collision with ground
-        if self.rect.bottom + dy > ground_y:
-            dy = ground_y - self.rect.bottom
-            self.in_air = False
+        #check collision with ground - temporary
+        #if self.rect.bottom + dy > ground_y:
+            #dy = ground_y - self.rect.bottom
+            #self.in_air = False
+
+
+        #check for collision
+        for tile in world.obstacle_list:
+            # check collision in the x direction
+            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height): # tile[0] -> image, tile[1] -> rectangle
+                dx = 0
             
+            # check collision in the y direction
+            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height): # tile[0] -> image, tile[1] -> rectangle
+                
+                # check if bellow the ground, jumping
+                if self.y_vel < 0:
+                    self.y_vel = 0
+                    dy = tile[1].bottom - self.rect.top
+                
+                # check if above the ground, falling
+                elif self.y_vel >= 0:
+                    self.y_vel = 0
+                    self.in_air = False
+                    dy = tile[1].top - self.rect.bottom
+        
         #update rectangle position
         self.rect.x += dx
         self.rect.y += dy
-        
+    
+    
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:
             self.shoot_cooldown = 20
             bullet = Bullet(self.rect.centerx + (0.8 * self.rect.size[0] * self.direction), self.rect.centery, self.direction) #self.rect.size[0] is player width
             bullet_group.add(bullet)
-            self.ammo -= 1 #reduce ammo
-                    
+            self.ammo -= 1 # reduce ammo
     
     
     def move_npcs(self):
@@ -291,6 +312,7 @@ class Player(pygame.sprite.Sprite):
     
     def draw(self):
         screen.blit(pygame.transform.flip(self.player_img, self.flip, False), self.rect)
+
 
 class World():
     def __init__(self):
@@ -432,7 +454,12 @@ class Bullet(pygame.sprite.Sprite):
         #check if bullets has gone off screen
         if self.rect.right < 0 or self.rect.left > screen_width:
             self.kill()
-
+        
+        # check collision with walls
+        for tile in world.obstacle_list:
+            if tile[1].colliderect(self.rect): # no need to specify x or y, looking for collision any direction
+                self.kill()
+        
         #check collision with characters
         #player
         if pygame.sprite.spritecollide(player, bullet_group, False):
@@ -456,22 +483,52 @@ class Grenade(pygame.sprite.Sprite):
         self.image = grenade_img
         self.rect = self.image.get_rect()
         self.rect.center = (x,y)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
         self.direction = direction
-        
+    
     def update(self):
         self.vel_y += gravity
         dx = self.direction * self.speed
         dy = self.vel_y
         
-        #check collision with ground
-        if self.rect.bottom + dy > ground_y:
-            dy = ground_y - self.rect.bottom
-            self.speed = 0
+        #check collision with ground - temporary
+        #if self.rect.bottom + dy > ground_y:
+            #dy = ground_y - self.rect.bottom
+            #self.speed = 0
         
-        #check collision with screen boundary
-        if self.rect.left + dx < 0 or self.rect.right + dx > screen_width:
-            self.direction *= -1
-            dx = self.direction * self.speed #bounce back with the same speed
+        #check collision with screen boundary - temporary
+        #if self.rect.left + dx < 0 or self.rect.right + dx > screen_width:
+            #self.direction *= -1
+            #dx = self.direction * self.speed #bounce back with the same speed
+        
+        
+        # check for collision with walls
+        
+        for tile in world.obstacle_list:
+            
+            
+            # check collision in x direction
+            if tile[1].colliderect(self.x + dx, self.rect.y, self.width, self.height):
+                self.direction *= -1
+                dx = self.direction * self.speed
+            
+            
+            # check collision in the y direction
+            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height): # tile[0] -> image, tile[1] -> rectangle
+                
+                self.speed = 0
+                
+                # check if bellow the ground, thrown up
+                if self.y_vel < 0:
+                    self.y_vel = 0
+                    dy = tile[1].bottom - self.rect.top
+                
+                # check if above the ground, thrown down
+                elif self.y_vel >= 0:
+                    self.y_vel = 0
+                    dy = tile[1].top - self.rect.bottom
+        
         
         #update grenade position
         self.rect.x += dx
@@ -491,6 +548,7 @@ class Grenade(pygame.sprite.Sprite):
             for enemy in enemy_group:
                 if enemy.alive:
                     self.deal_damage_to(enemy)
+    
     
     def deal_damage_to(self, target):
             # Calculate distance in tiles 
