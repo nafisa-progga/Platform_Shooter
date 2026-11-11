@@ -31,9 +31,8 @@ tile_types = 21
 moving_left = False
 moving_right = False
 shoot = False
-grenade = False
+grenade_button = False
 grenade_thrown = False
-
 
 
 #Load images
@@ -123,7 +122,7 @@ class Player(pygame.sprite.Sprite):
         self.y_vel = 0 #velocity in y direction
         self.direction = 1
         self.jump = False
-        self.in_air = True
+        self.in_air = True # pygame norm
         self.flip = False
         self.animation_list = []
         self.frame_index = 0
@@ -185,7 +184,7 @@ class Player(pygame.sprite.Sprite):
         
         #jump
         if self.jump == True and self.in_air == False:
-            self.y_vel = - 10 # top left point (0,0) and y value increases bellow it. 
+            self.y_vel = - 11 # top left point (0,0) and y value increases bellow it.
             # So, in order to move up/jump, we need to decrease the y value
             self.jump = False
             self.in_air = True
@@ -506,27 +505,25 @@ class Grenade(pygame.sprite.Sprite):
         # check for collision with walls
         
         for tile in world.obstacle_list:
-            
-            
+                        
             # check collision in x direction
-            if tile[1].colliderect(self.x + dx, self.rect.y, self.width, self.height):
+            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
                 self.direction *= -1
                 dx = self.direction * self.speed
-            
-            
+                        
             # check collision in the y direction
             if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height): # tile[0] -> image, tile[1] -> rectangle
                 
                 self.speed = 0
                 
                 # check if bellow the ground, thrown up
-                if self.y_vel < 0:
-                    self.y_vel = 0
+                if self.vel_y < 0:
+                    self.vel_y = 0
                     dy = tile[1].bottom - self.rect.top
                 
                 # check if above the ground, thrown down
-                elif self.y_vel >= 0:
-                    self.y_vel = 0
+                elif self.vel_y >= 0:
+                    self.vel_y = 0
                     dy = tile[1].top - self.rect.bottom
         
         
@@ -718,7 +715,7 @@ while run:
         if shoot:
             player.shoot()
         #throw grenade
-        elif grenade and grenade_thrown == False and player.grenades > 0:
+        elif grenade_button and grenade_thrown == False and player.grenades > 0:
             grenade = Grenade(player.rect.centerx + (0.5 * player.rect.size[0] * player.direction), \
                         player.rect.top, player.direction)
             grenade_group.add(grenade)
@@ -756,7 +753,7 @@ while run:
                     shoot = True
             if event.key == pygame.K_q:
                 if player.alive:
-                    grenade = True
+                    grenade_button = True
             if event.key == pygame.K_ESCAPE:
                 run = False
                 
@@ -769,7 +766,7 @@ while run:
             if event.key == pygame.K_e:
                 shoot = False
             if event.key == pygame.K_q:
-                grenade = False
+                grenade_button = False
                 grenade_thrown = False
 
         # Mouse clicks
@@ -778,14 +775,15 @@ while run:
                 shoot = True
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 3 and player.alive:  # Right click pressed, # 3 means right mouse button
-                grenade= True
+                grenade_button = True
+                grenade_thrown = False
                 
         if event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:  # Left click released
                 shoot = False
         if event.type == pygame.MOUSEBUTTONUP:
             if event.button == 3:  # Right click released
-                grenade = False
+                grenade_button = False
                 grenade_thrown = False
             
     pygame.display.update()

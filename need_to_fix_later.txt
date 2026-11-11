@@ -1,2 +1,0 @@
-ammo & grenade - limit. Same as health
-run & shoot damages player health - fixed
