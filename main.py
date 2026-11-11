@@ -40,14 +40,38 @@ for x in range(len(os.listdir(tile_path))):
     img_list.append(img)
 
 #define colors
-bg = (144, 201, 120)
+sage_green = (144, 201, 120)
 red = (255, 0, 0)
+white = (255, 255, 255)
+black = (0, 0, 0)
+green = (0, 255, 0)
+
+# define font
+font = pygame.font.SysFont("Futura", 25)
+
+# draw text on screen
+def draw_text(text, font, text_color, x , y):
+    img = font.render(text, True, text_color)
+    screen.blit( img, (x,y))
+
+
+# define game variables
+gravity = 0.75
+tile_size = 50
 ground_y = 400
+
+#define player action variables
+moving_left = False
+moving_right = False
+shoot = False
+grenade = False
+grenade_thrown = False
+
 
     
 #draw background and ground tiles
 def draw_bg():
-    screen.fill(bg)
+    screen.fill(sage_green)
     
     # Draw tiled ground using tile 0 and tile 3 across the screen width
     tile_width = img_list[0].get_width()
@@ -58,18 +82,6 @@ def draw_bg():
         for y in range(ground_y + tile_width, screen_height, tile_width):
             screen.blit(img_list[3], (x, y))
 
-
-    
-# define game variables
-gravity = 0.75
-tile_size = 50
-
-#define player action variables
-moving_left = False
-moving_right = False
-shoot = False
-grenade = False
-grenade_thrown = False
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, char_type, x, y, scale, speed, ammo, grenades):
@@ -209,37 +221,6 @@ class Player(pygame.sprite.Sprite):
 
 
 
-class ItemBox(pygame.sprite.Sprite):
-    
-    def __init__(self, item_type, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        self.item_type = item_type
-        self.image = item_boxes[self.item_type]
-        self.rect = self.image.get_rect()
-        self.rect.midtop = ( (x + tile_size // 2), ( y + ( tile_size - self.image.get_height() ) ) )
-        
-        
-    def update(self):
-        # check if the player has picked up the box
-        if pygame.sprite.collide_rect(self, player):
-            
-            #check what kind of box it was
-            if self.item_type == "Health":
-                player.health += 25
-                
-                if player.health > player.max_health:
-                    player.health = player.max_health
-                    
-            elif self.item_type == "Ammo":
-                player.ammo += 15
-                
-            elif self.item_type == "Grenade":
-                player.grenades += 2
-            
-            # delete the item box
-            self.kill()
-
-
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
         pygame.sprite.Sprite.__init__(self)
@@ -329,8 +310,7 @@ class Grenade(pygame.sprite.Sprite):
                 target.health -= 50
             # Within 3 tile range - light damage
             elif distance_x < tile_size * 3 and distance_y < tile_size * 3:
-                target.health -= 30
-    
+                target.health -= 25
 
 
 class Explosion(pygame.sprite.Sprite):
@@ -366,7 +346,54 @@ class Explosion(pygame.sprite.Sprite):
                 self.kill()
             else:
                 self.image = self.images[self.frame_index]
+
+
+class ItemBox(pygame.sprite.Sprite):
     
+    def __init__(self, item_type, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.item_type = item_type
+        self.image = item_boxes[self.item_type]
+        self.rect = self.image.get_rect()
+        self.rect.midtop = ( (x + tile_size // 2), ( y + ( tile_size - self.image.get_height() ) ) )
+        
+        
+    def update(self):
+        # check if the player has picked up the box
+        if pygame.sprite.collide_rect(self, player):
+            
+            #check what kind of box it was
+            if self.item_type == "Health":
+                player.health += 25
+                
+                if player.health > player.max_health:
+                    player.health = player.max_health
+                    
+            elif self.item_type == "Ammo":
+                player.ammo += 10
+                
+            elif self.item_type == "Grenade":
+                player.grenades += 3
+            
+            # delete the item box
+            self.kill()
+
+
+class HealthBar():
+    def __init__(self, x, y, health, max_health):
+        self.x = x
+        self.y = y
+        self.health = health
+        self.max_health = max_health
+    
+    def draw(self, health):
+        #update with new health
+        self.health = health
+        #calculate health ratio
+        ratio = self.health / self.max_health
+        pygame.draw.rect(screen, black, (self.x -2, self.y -2, 154, 24)) #x, y, width, height
+        pygame.draw.rect(screen, red, (self.x, self.y, 150, 20))
+        pygame.draw.rect(screen, green, (self.x, self.y, 150 * ratio, 20))
 
 
 #create sprite groups
@@ -377,10 +404,15 @@ explosion_group = pygame.sprite.Group()
 item_box_group = pygame.sprite.Group()
                 
 
-# create instances    
-player = Player("player", 200, 200, 2, 5, 20, 5)
-enemy = Player("enemy", 200, 365, 2, 5, 20, 0)
-enemy2 = Player("enemy", 400, 365, 2, 5, 20, 0)
+# create instances
+
+# create player & it's instances
+player = Player("player", 200, 200, 2, 5, 20, 5) # parameters: char_type, x, y, scale, speed, ammo, grenades
+health_bar = HealthBar(80, 10, player.health, player.max_health)
+
+# create enemy
+enemy = Player("enemy", 400, 365, 2, 5, 20, 0)
+enemy2 = Player("enemy", 600, 365, 2, 5, 20, 0)
 enemy_group.add(enemy)
 enemy_group.add(enemy2)
 
@@ -399,6 +431,27 @@ while run:
     
     clock.tick(fps)
     draw_bg()
+    
+    # show health
+    draw_text("Health: ", font, black, 10, 10)
+    health_bar.draw(player.health)
+    
+    # calculate health percentage
+    health_percentage = int((player.health / player.max_health) * 100)
+    draw_text(f"{health_percentage}%", font, white, 245, 10)
+    
+    # Show ammo
+    draw_text("AMMO: ", font, black, 10, 35)
+    draw_text(str(player.ammo), font, white, 80, 35)
+    for i in range(player.ammo):
+        screen.blit(bullet_img, (130 + (i * 10), 40))
+    
+    # Show grenades 
+    draw_text("Grenades: ", font, black, 10, 60)
+    draw_text(str(player.grenades), font, white, 110, 60)
+    for i in range(player.grenades):
+        screen.blit(grenade_img, (150 + (i * 15), 60))
+
     
     player.update()
     player.draw()
