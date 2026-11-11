@@ -1,6 +1,7 @@
 import pygame
 import os
 import random
+import csv
 
 pygame.init()
 
@@ -15,7 +16,36 @@ clock = pygame.time.Clock()
 fps = 60
 
 
+
+# define game variables
+gravity = 0.75
+#tile_size = 50
+ground_y = 400
+level = 1
+rows = 16
+cols = 150
+tile_size = screen_height // rows
+tile_types = 21
+
+#define player action variables
+moving_left = False
+moving_right = False
+shoot = False
+grenade = False
+grenade_thrown = False
+
+
+
 #Load images
+
+# world images
+# store tiles in a list
+img_list = []
+for x in range(tile_types):
+    img = pygame.image.load(f"shooter_assets/img/tile/{x}.png")
+    img = pygame.transform.scale(img, (tile_size, tile_size) )
+    img_list.append(img)
+
 #bullet
 bullet_img = pygame.image.load("shooter_assets/img/icons/bullet.png").convert_alpha()
 #grenade
@@ -38,13 +68,13 @@ item_boxes = {
 }
 
 
-# Load ground tile images
-img_list = []
-tile_path = "shooter_assets/img/tile"
-for x in range(len(os.listdir(tile_path))):
-    img = pygame.image.load(f"{tile_path}/{x}.png")
-    img = pygame.transform.scale(img, (40, 40)) # Adjust tile size if needed
-    img_list.append(img)
+# Load ground tile images - temporary
+#img_list = []
+#tile_path = "shooter_assets/img/tile"
+#for x in range(len(os.listdir(tile_path))):
+    #img = pygame.image.load(f"{tile_path}/{x}.png")
+    #img = pygame.transform.scale(img, (40, 40)) # Adjust tile size if needed
+    #img_list.append(img)
 
 #define colors
 sage_green = (144, 201, 120)
@@ -62,32 +92,21 @@ def draw_text(text, font, text_color, x , y):
     screen.blit( img, (x,y))
 
 
-# define game variables
-gravity = 0.75
-tile_size = 50
-ground_y = 400
-
-#define player action variables
-moving_left = False
-moving_right = False
-shoot = False
-grenade = False
-grenade_thrown = False
-
-
     
-#draw background and ground tiles
-def draw_bg():
-    screen.fill(sage_green)
+#draw background and ground tiles - temporary
+#def draw_bg():
+    #screen.fill(sage_green)
     
     # Draw tiled ground using tile 0 and tile 3 across the screen width
-    tile_width = img_list[0].get_width()
-    for x in range(0, screen_width, tile_width):
+    #tile_width = img_list[0].get_width()
+    #for x in range(0, screen_width, tile_width):
         # Top grass layer (tile 0)
-        screen.blit(img_list[0], (x, ground_y))
+        #screen.blit(img_list[0], (x, ground_y))
         # Dirt layers underneath (tile 3) spanning down to the bottom of the screen
-        for y in range(ground_y + tile_width, screen_height, tile_width):
-            screen.blit(img_list[3], (x, y))
+        #for y in range(ground_y + tile_width, screen_height, tile_width):
+            #screen.blit(img_list[3], (x, y))
+
+
 
 
 class Player(pygame.sprite.Sprite):
@@ -273,6 +292,128 @@ class Player(pygame.sprite.Sprite):
     def draw(self):
         screen.blit(pygame.transform.flip(self.player_img, self.flip, False), self.rect)
 
+class World():
+    def __init__(self):
+        self.obstacle_list = []
+        
+    def process_data(self,data):
+        #iterate through each value in level data file
+        for y, row in enumerate(data):
+            for x, tile in enumerate(row):
+                if tile >= 0:
+                    img = img_list[tile]
+                    img_rect = img.get_rect()
+                    img_rect.x = x * tile_size
+                    img_rect.y = y * tile_size
+                    tile_data = (img, img_rect)
+                    
+                    # check indivudual tiles
+                    if tile >= 0 and tile <= 8:
+                        self.obstacle_list.append(tile_data)
+                    elif tile >=9 and tile <= 10:
+                        water = Water(img,  x * tile_size, y * tile_size)
+                        water_group.add(water)
+                    elif tile >= 11 and tile <= 14:
+                        decoration = Decorations(img,  x * tile_size, y * tile_size)
+                        decoration_group.add(decoration)
+                    elif tile == 15: # create player
+                        player = Player("player", x * tile_size, y * tile_size, 1.85, 5, 20, 5) # parameters: char_type, x, y, scale, speed, ammo, grenades
+                        health_bar = HealthBar(80, 10, player.health, player.max_health)
+                    elif tile == 16: # create enemy
+                        enemy = Player("enemy", 300, 365, 1.85, 2, 20, 0)
+                        enemy_group.add(enemy)
+                    elif tile == 17: # create ammo box
+                        item_box = ItemBox("Ammo",  x * tile_size, y * tile_size)
+                        item_box_group.add(item_box)
+                    elif tile == 18: # create ammo box
+                        item_box = ItemBox("Grenade",  x * tile_size, y * tile_size)
+                        item_box_group.add(item_box)
+                    elif tile == 19: # create ammo box
+                        item_box = ItemBox("Health",  x * tile_size, y * tile_size)
+                        item_box_group.add(item_box)
+                    elif tile == 20: # create exit ~ next level
+                        exit = Exit(img,  x * tile_size, y * tile_size)
+                        exit_group.add(exit)
+        
+        return player, health_bar
+    
+    
+    def draw(self):
+        for tile in self.obstacle_list:
+            screen.blit(tile[0], tile[1])
+
+
+class Water(pygame.sprite.Sprite):
+    def __init__(self, img, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = img
+        self.rect = self.image.get_rect()
+        self.rect.midtop = ( x + tile_size //2, y + (tile_size - self.image.get_height() ) )
+
+
+class Decorations(pygame.sprite.Sprite):
+    def __init__(self, img, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = img
+        self.rect = self.image.get_rect()
+        self.rect.midtop = ( x + tile_size //2, y + (tile_size - self.image.get_height() ) )
+
+
+class Exit(pygame.sprite.Sprite):
+    def __init__(self, img, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = img
+        self.rect = self.image.get_rect()
+        self.rect.midtop = ( x + tile_size //2, y + (tile_size - self.image.get_height() ) )
+
+
+
+class ItemBox(pygame.sprite.Sprite):
+    
+    def __init__(self, item_type, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.item_type = item_type
+        self.image = item_boxes[self.item_type]
+        self.rect = self.image.get_rect()
+        self.rect.midtop = ( (x + tile_size // 2), ( y + ( tile_size - self.image.get_height() ) ) )
+        
+        
+    def update(self):
+        # check if the player has picked up the box
+        if pygame.sprite.collide_rect(self, player):
+            
+            #check what kind of box it was
+            if self.item_type == "Health":
+                player.health += 25
+                
+                if player.health > player.max_health:
+                    player.health = player.max_health
+                    
+            elif self.item_type == "Ammo":
+                player.ammo += 10
+                
+            elif self.item_type == "Grenade":
+                player.grenades += 3
+            
+            # delete the item box
+            self.kill()
+
+
+class HealthBar():
+    def __init__(self, x, y, health, max_health):
+        self.x = x
+        self.y = y
+        self.health = health
+        self.max_health = max_health
+    
+    def draw(self, health):
+        #update with new health
+        self.health = health
+        #calculate health ratio
+        ratio = self.health / self.max_health
+        pygame.draw.rect(screen, black, (self.x -2, self.y -2, 154, 24)) #x, y, width, height
+        pygame.draw.rect(screen, red, (self.x, self.y, 150, 20))
+        pygame.draw.rect(screen, green, (self.x, self.y, 150 * ratio, 20))
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -402,89 +543,62 @@ class Explosion(pygame.sprite.Sprite):
                 self.image = self.images[self.frame_index]
 
 
-class ItemBox(pygame.sprite.Sprite):
-    
-    def __init__(self, item_type, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        self.item_type = item_type
-        self.image = item_boxes[self.item_type]
-        self.rect = self.image.get_rect()
-        self.rect.midtop = ( (x + tile_size // 2), ( y + ( tile_size - self.image.get_height() ) ) )
-        
-        
-    def update(self):
-        # check if the player has picked up the box
-        if pygame.sprite.collide_rect(self, player):
-            
-            #check what kind of box it was
-            if self.item_type == "Health":
-                player.health += 25
-                
-                if player.health > player.max_health:
-                    player.health = player.max_health
-                    
-            elif self.item_type == "Ammo":
-                player.ammo += 10
-                
-            elif self.item_type == "Grenade":
-                player.grenades += 3
-            
-            # delete the item box
-            self.kill()
-
-
-class HealthBar():
-    def __init__(self, x, y, health, max_health):
-        self.x = x
-        self.y = y
-        self.health = health
-        self.max_health = max_health
-    
-    def draw(self, health):
-        #update with new health
-        self.health = health
-        #calculate health ratio
-        ratio = self.health / self.max_health
-        pygame.draw.rect(screen, black, (self.x -2, self.y -2, 154, 24)) #x, y, width, height
-        pygame.draw.rect(screen, red, (self.x, self.y, 150, 20))
-        pygame.draw.rect(screen, green, (self.x, self.y, 150 * ratio, 20))
-
-
 #create sprite groups
 enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
 grenade_group = pygame.sprite.Group()
 explosion_group = pygame.sprite.Group()
 item_box_group = pygame.sprite.Group()
-                
+decoration_group = pygame.sprite.Group()
+water_group = pygame.sprite.Group()
+exit_group = pygame.sprite.Group()
 
 # create instances
-
 # create player & it's instances
-player = Player("player", 200, 200, 1.85, 5, 20, 5) # parameters: char_type, x, y, scale, speed, ammo, grenades
-health_bar = HealthBar(80, 10, player.health, player.max_health)
-
+#player = Player("player", 200, 200, 1.85, 5, 20, 5) # parameters: char_type, x, y, scale, speed, ammo, grenades
+#health_bar = HealthBar(80, 10, player.health, player.max_health)
 # create enemy
-enemy = Player("enemy", 300, 365, 1.85, 2, 20, 0)
-enemy2 = Player("enemy", 600, 365, 1.85, 2, 20, 0)
-enemy_group.add(enemy)
-enemy_group.add(enemy2)
-
+#enemy = Player("enemy", 300, 365, 1.85, 2, 20, 0)
+#enemy2 = Player("enemy", 600, 365, 1.85, 2, 20, 0)
+#enemy_group.add(enemy)
+#enemy_group.add(enemy2)
 
 # temp = create item boxes
-item_box = ItemBox("Health", 100, 350)
-item_box_group.add(item_box)
-item_box = ItemBox("Ammo", 400, 350)
-item_box_group.add(item_box)
-item_box = ItemBox("Grenade", 500, 350)
-item_box_group.add(item_box)
+#item_box = ItemBox("Health", 100, 350)
+#item_box_group.add(item_box)
+#item_box = ItemBox("Ammo", 400, 350)
+#item_box_group.add(item_box)
+#item_box = ItemBox("Grenade", 500, 350)
+#item_box_group.add(item_box)
+
+
+
+# create empty tile list
+world_data = []
+for row in range(rows):
+    r = [-1]*cols
+    world_data.append(r)
+
+# load in level data and create world
+with open(f"shooter_assets/level{level}_data.csv", newline="") as csvfile:
+    reader = csv.reader(csvfile, delimiter=",")
+    for x, row in enumerate(reader):
+        for y, tile in enumerate(row):
+            world_data[x][y] = int(tile)
+
+
+world = World()
+player, health_bar = world.process_data(world_data)
 
 
 run = True
 while run:
     
     clock.tick(fps)
-    draw_bg()
+    #draw_bg()
+    
+    #draw world map
+    world.draw()
     
     # show health
     draw_text("Health: ", font, black, 10, 10)
@@ -527,8 +641,17 @@ while run:
     
     item_box_group.update()
     item_box_group.draw(screen)
-        
     
+    water_group.update()
+    water_group.draw(screen)
+    
+    decoration_group.update()
+    decoration_group.draw(screen)
+    
+    exit_group.update()
+    exit_group.draw(screen)
+
+
     #update player actions
     if player.alive:
         
