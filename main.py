@@ -342,7 +342,7 @@ class World():
                         player = Player("player", x * tile_size, y * tile_size, 1.85, 5, 20, 5) # parameters: char_type, x, y, scale, speed, ammo, grenades
                         health_bar = HealthBar(80, 10, player.health, player.max_health)
                     elif tile == 16: # create enemy
-                        enemy = Player("enemy", 300, 365, 1.85, 2, 20, 0)
+                        enemy = Player("enemy", x * tile_size, y * tile_size, 1.85, 2, 20, 0)
                         enemy_group.add(enemy)
                     elif tile == 17: # create ammo box
                         item_box = ItemBox("Ammo",  x * tile_size, y * tile_size)
@@ -654,6 +654,7 @@ while run:
     
     clock.tick(fps)
     #draw_bg()
+    screen.fill(sage_green)
     
     #draw world map
     world.draw()
