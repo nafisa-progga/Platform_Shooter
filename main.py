@@ -22,10 +22,8 @@ fps = 60
 
 # define game variables
 gravity = 0.75
-#tile_size = 50
-#ground_y = 400
-level = 1
-max_levels = 3
+level = 5
+max_levels = 5
 rows = 16
 cols = 150
 tile_size = screen_height // rows
@@ -35,6 +33,8 @@ screen_scroll = 0
 bg_scroll = 0
 start_game = False
 start_intro = False
+game_completed = False
+completion_screen_timer = 0
 
 
 #define player action variables
@@ -104,15 +104,6 @@ item_boxes = {
 }
 
 
-# Load ground tile images - temporary
-#img_list = []
-#tile_path = "shooter_assets/img/tile"
-#for x in range(len(os.listdir(tile_path))):
-    #img = pygame.image.load(f"{tile_path}/{x}.png")
-    #img = pygame.transform.scale(img, (40, 40)) # Adjust tile size if needed
-    #img_list.append(img)
-
-
 #define colors
 sage_green = (144, 201, 120)
 red = (255, 0, 0)
@@ -124,6 +115,7 @@ pink = (235, 65, 54)
 
 # define font
 font = pygame.font.SysFont("Futura", 25)
+large_font = pygame.font.SysFont("Futura", 32)
 
 # draw text on screen
 def draw_text(text, font, text_color, x , y):
@@ -131,7 +123,6 @@ def draw_text(text, font, text_color, x , y):
     screen.blit( img, (x,y))
 
 
-    
 #draw background (rounded coordinates to eliminate sub-pixel gaps/seams)
 def draw_bg():
     screen.fill(sage_green)
@@ -141,16 +132,6 @@ def draw_bg():
         screen.blit(mountain_img, (int(( x * width) - bg_scroll * 0.6), screen_height - mountain_img.get_height() - 300 ) )
         screen.blit(pine1_img, (int(( x * width) - bg_scroll * 0.7), screen_height - pine1_img.get_height() - 150 ) )
         screen.blit(pine2_img, (int(( x * width) - bg_scroll * 0.8), screen_height - pine2_img.get_height() ) )
-    
-    
-    # Draw tiled ground using tile 0 and tile 3 across the screen width - temporary
-    #tile_width = img_list[0].get_width()
-    #for x in range(0, screen_width, tile_width):
-        # Top grass layer (tile 0)
-        #screen.blit(img_list[0], (x, ground_y))
-        # Dirt layers underneath (tile 3) spanning down to the bottom of the screen
-        #for y in range(ground_y + tile_width, screen_height, tile_width):
-            #screen.blit(img_list[3], (x, y))
 
 
 # function to reset level
@@ -262,11 +243,6 @@ class Player(pygame.sprite.Sprite):
         if self.y_vel > 10:
             self.y_vel = 10
         dy += self.y_vel
-        
-        #check collision with ground - temporary
-        #if self.rect.bottom + dy > ground_y:
-            #dy = ground_y - self.rect.bottom
-            #self.in_air = False
 
 
         #check for collision
@@ -319,15 +295,12 @@ class Player(pygame.sprite.Sprite):
         
         # update scroll based on player position
         if self.char_type == "player":
-            if ( self.rect.right > screen_width - scroll_threshold and bg_scroll < ( world.level_length * tile_size) - screen_width) \
-                or ( self.rect.left < scroll_threshold and bg_scroll > dx ):
+            if ( self.rect.right > screen_width - scroll_threshold and bg_scroll < ( world.level_length * tile_size) - screen_width)                 or ( self.rect.left < scroll_threshold and bg_scroll > dx ):
                 
                 self.rect.x -= dx
                 screen_scroll = -dx
                 
-        #print(screen_scroll)
         return screen_scroll, level_complete
-    
     
     
     def shoot(self):
@@ -616,19 +589,7 @@ class Grenade(pygame.sprite.Sprite):
         dx = self.direction * self.speed
         dy = self.vel_y
         
-        #check collision with ground - temporary
-        #if self.rect.bottom + dy > ground_y:
-            #dy = ground_y - self.rect.bottom
-            #self.speed = 0
-        
-        #check collision with screen boundary - temporary
-        #if self.rect.left + dx < 0 or self.rect.right + dx > screen_width:
-            #self.direction *= -1
-            #dx = self.direction * self.speed #bounce back with the same speed
-        
-        
         # check for collision with walls
-        
         for tile in world.obstacle_list:
                         
             # check collision in x direction
@@ -778,8 +739,11 @@ class ScreenFade():
             
         if self.direction == 2: # vertical screen fade down
             pygame.draw.rect(screen, self.colour, (0, 0, screen_width, 0 + self.fade_counter))
-        
-        if self.fade_counter >= screen_width:
+
+        if self.direction == 3: # vertical screen fade up (opposite motion of fade down/restart)
+            pygame.draw.rect(screen, self.colour, (0, screen_height - self.fade_counter, screen_width, self.fade_counter))
+            
+        if self.fade_counter >= screen_width or self.fade_counter >= screen_height:
             fade_complete = True
         
         return fade_complete
@@ -788,6 +752,7 @@ class ScreenFade():
 # create screen fades
 intro_fade = ScreenFade(1, black, 8)
 death_fade = ScreenFade(2, pink, 8)
+victory_fade = ScreenFade(3, sage_green, 8)
 
 
 # create buttons
@@ -805,25 +770,6 @@ item_box_group = pygame.sprite.Group()
 decoration_group = pygame.sprite.Group()
 water_group = pygame.sprite.Group()
 exit_group = pygame.sprite.Group()
-
-# create instances
-# create player & it's instances
-#player = Player("player", 200, 200, 1.85, 5, 20, 5) # parameters: char_type, x, y, scale, speed, ammo, grenades
-#health_bar = HealthBar(80, 10, player.health, player.max_health)
-# create enemy
-#enemy = Player("enemy", 300, 365, 1.85, 2, 20, 0)
-#enemy2 = Player("enemy", 600, 365, 1.85, 2, 20, 0)
-#enemy_group.add(enemy)
-#enemy_group.add(enemy2)
-
-# temp = create item boxes
-#item_box = ItemBox("Health", 100, 350)
-#item_box_group.add(item_box)
-#item_box = ItemBox("Ammo", 400, 350)
-#item_box_group.add(item_box)
-#item_box = ItemBox("Grenade", 500, 350)
-#item_box_group.add(item_box)
-
 
 
 # create empty tile list
@@ -847,6 +793,7 @@ player, health_bar = world.process_data(world_data)
 async def main():
     global start_game, start_intro, level, bg_scroll, world_data, world, player, health_bar
     global moving_left, moving_right, shoot, grenade_button, grenade_thrown, screen_scroll
+    global game_completed, completion_screen_timer
     
     run = True
     while run:
@@ -861,9 +808,38 @@ async def main():
             if start_button.draw(screen):
                 start_game = True
                 start_intro = True
+                game_completed = False
                 pygame.event.clear() # Clear event queue so start click doesn't trigger shoot
             if exit_button.draw(screen):
                 run = False
+        
+        elif game_completed:
+            # draw completion screen background/sage green and show victory text
+            screen.fill(sage_green)
+            
+            # draw victory fade / transition
+            if victory_fade.fade():
+                # Display completion message after transition completes
+                draw_text("Congratulations, you have completed all the levels", font, black, screen_width // 2 - 240, screen_height // 2 - 30)
+                draw_text("or mission successful. Return to your base.", font, black, screen_width // 2 - 210, screen_height // 2 + 5)
+                
+                completion_screen_timer += 1
+                if completion_screen_timer > 180: # ~3 seconds pause before returning to main menu
+                    game_completed = False
+                    start_game = False
+                    victory_fade.fade_counter = 0
+                    completion_screen_timer = 0
+                    level = 1
+                    # reload level 1 data for fresh start next time
+                    bg_scroll = 0
+                    world_data = reset_level()
+                    with open(f"shooter_assets/level{level}_data.csv", newline="") as csvfile:
+                        reader = csv.reader(csvfile, delimiter=",")
+                        for x, row in enumerate(reader):
+                            for y, tile in enumerate(row):
+                                world_data[x][y] = int(tile)
+                    world = World()
+                    player, health_bar = world.process_data(world_data)
         
         else:
             
@@ -892,6 +868,9 @@ async def main():
             draw_text(str(player.grenades), font, white, 110, 60)
             for i in range(player.grenades):
                 screen.blit(grenade_img, (150 + (i * 15), 60))
+
+            # Show Level info with emojis
+            draw_text(f"Level: {level} / {max_levels} 🌟🎮", font, black, 10, 85)
 
             
             player.update()
@@ -940,8 +919,7 @@ async def main():
                     player.shoot()
                 #throw grenade
                 elif grenade_button and grenade_thrown == False and player.grenades > 0:
-                    grenade = Grenade(player.rect.centerx + (0.5 * player.rect.size[0] * player.direction), \
-                                player.rect.top, player.direction)
+                    grenade = Grenade(player.rect.centerx + (0.5 * player.rect.size[0] * player.direction),                                 player.rect.top, player.direction)
                     grenade_group.add(grenade)
                     #reduce grenades
                     player.grenades -= 1
@@ -960,12 +938,12 @@ async def main():
                 
                 # check if the player has completed the level
                 if level_complete:
-                    start_intro = True
-                    level += 1
-                    bg_scroll = 0
-                    world_data = reset_level()
-                    
-                    if level <= max_levels:
+                    if level < max_levels:
+                        start_intro = True
+                        level += 1
+                        bg_scroll = 0
+                        world_data = reset_level()
+                        
                         # load in level data and create world
                         with open(f"shooter_assets/level{level}_data.csv", newline="") as csvfile:
                             reader = csv.reader(csvfile, delimiter=",")
@@ -976,10 +954,10 @@ async def main():
                         world = World()
                         player, health_bar = world.process_data(world_data)
                     else:
-                        level = max_levels
-                
-                #print(screen_scroll)
-                
+                        # Reached end of level 5 (max_levels)
+                        game_completed = True
+                        victory_fade.fade_counter = 0
+                        completion_screen_timer = 0
                 
             else:  # player not alive, died
                 screen_scroll = 0
