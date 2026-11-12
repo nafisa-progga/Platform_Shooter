@@ -1,8 +1,10 @@
 import pygame
+from pygame import mixer
 import os
 import random
 import csv
 
+mixer.init()
 pygame.init()
 
 screen_width = 800
@@ -38,6 +40,21 @@ moving_right = False
 shoot = False
 grenade_button = False
 grenade_thrown = False
+
+
+# Load Music and Sounds
+pygame.mixer.music.load("shooter_assets/audio/music2.mp3")
+pygame.mixer.music.set_volume(0.4) # 0.4 means 40% of the original volume
+pygame.mixer.music.play(-1, 0.0, 5000) # arguments: timer for loop the music (-1, indifinite), delay, fade music, 5000- 5 sec
+
+jump_fx = pygame.mixer.Sound("shooter_assets/audio/jump.wav")
+jump_fx.set_volume(0.5)
+
+shot_fx = pygame.mixer.Sound("shooter_assets/audio/shot.wav")
+shot_fx.set_volume(0.5)
+
+grenade_fx = pygame.mixer.Sound("shooter_assets/audio/grenade.wav")
+grenade_fx.set_volume(0.5)
 
 
 #Load images
@@ -314,6 +331,8 @@ class Player(pygame.sprite.Sprite):
             bullet = Bullet(self.rect.centerx + (0.8 * self.rect.size[0] * self.direction), self.rect.centery, self.direction) #self.rect.size[0] is player width
             bullet_group.add(bullet)
             self.ammo -= 1 # reduce ammo
+            
+            shot_fx.play()
     
     
     def move_npcs(self):
@@ -636,6 +655,7 @@ class Grenade(pygame.sprite.Sprite):
         self.timer -= 1
         if self.timer <= 0:
             self.kill()
+            grenade_fx.play()
             explosion = Explosion(self.rect.x, self.rect.y, 0.5)
             explosion_group.add(explosion)
             
@@ -937,6 +957,7 @@ while run:
             if event.key == pygame.K_w or event.key == pygame.K_UP:
                 if player.alive:
                     player.jump = True
+                    jump_fx.play()
             if event.key == pygame.K_e:
                 if player.alive:
                     shoot = True
