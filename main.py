@@ -1,9 +1,19 @@
 import pygame
 from pygame import mixer
 import os
+import sys
 import random
 import csv
 import asyncio
+
+def resource_path(relative_path):
+    """Get a bundled asset path (PyInstaller) or project path (development)."""
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 mixer.init()
@@ -22,7 +32,7 @@ fps = 60
 
 # define game variables
 gravity = 0.75
-level = 5
+level = 1
 max_levels = 5
 rows = 16
 cols = 150
@@ -46,55 +56,55 @@ grenade_thrown = False
 
 
 # Load Music and Sounds
-pygame.mixer.music.load("shooter_assets/audio/music2.mp3")
+pygame.mixer.music.load( resource_path("shooter_assets/audio/music2.mp3") )
 pygame.mixer.music.set_volume(0.4) # 0.4 means 40% of the original volume
 pygame.mixer.music.play(-1, 0.0, 5000) # arguments: timer for loop the music (-1, indifinite), delay, fade music, 5000- 5 sec
 
-jump_fx = pygame.mixer.Sound("shooter_assets/audio/jump.wav")
+jump_fx = pygame.mixer.Sound(resource_path("shooter_assets/audio/jump.wav"))
 jump_fx.set_volume(0.5)
 
-shot_fx = pygame.mixer.Sound("shooter_assets/audio/shot.wav")
+shot_fx = pygame.mixer.Sound(resource_path("shooter_assets/audio/shot.wav"))
 shot_fx.set_volume(0.5)
 
-grenade_fx = pygame.mixer.Sound("shooter_assets/audio/grenade.wav")
+grenade_fx = pygame.mixer.Sound(resource_path("shooter_assets/audio/grenade.wav"))
 grenade_fx.set_volume(0.5)
 
 
 #Load images
 
 #button images
-start_img = pygame.image.load("shooter_assets/img/start_btn.png").convert_alpha()
-exit_img = pygame.image.load("shooter_assets/img/exit_btn.png").convert_alpha()
-restart_img = pygame.image.load("shooter_assets/img/restart_btn.png").convert_alpha()
+start_img = pygame.image.load(resource_path("shooter_assets/img/start_btn.png")).convert_alpha()
+exit_img = pygame.image.load(resource_path("shooter_assets/img/exit_btn.png")).convert_alpha()
+restart_img = pygame.image.load(resource_path("shooter_assets/img/restart_btn.png")).convert_alpha()
 
 # background
-pine1_img = pygame.image.load("shooter_assets/img/background/pine1.png").convert_alpha()
-pine2_img = pygame.image.load("shooter_assets/img/background/pine2.png").convert_alpha()
-mountain_img = pygame.image.load("shooter_assets/img/background/mountain.png").convert_alpha()
-sky_img = pygame.image.load("shooter_assets/img/background/sky_cloud.png").convert_alpha()
+pine1_img = pygame.image.load(resource_path("shooter_assets/img/background/pine1.png")).convert_alpha()
+pine2_img = pygame.image.load(resource_path("shooter_assets/img/background/pine2.png")).convert_alpha()
+mountain_img = pygame.image.load(resource_path("shooter_assets/img/background/mountain.png")).convert_alpha()
+sky_img = pygame.image.load(resource_path("shooter_assets/img/background/sky_cloud.png")).convert_alpha()
 
 
 # world images
 # store tiles in a list
 img_list = []
 for x in range(tile_types):
-    img = pygame.image.load(f"shooter_assets/img/tile/{x}.png")
+    img = pygame.image.load(resource_path(f"shooter_assets/img/tile/{x}.png"))
     img = pygame.transform.scale(img, (tile_size, tile_size) )
     img_list.append(img)
 
 #bullet
-bullet_img = pygame.image.load("shooter_assets/img/icons/bullet.png").convert_alpha()
+bullet_img = pygame.image.load(resource_path("shooter_assets/img/icons/bullet.png")).convert_alpha()
 #grenade
-grenade_img = pygame.image.load("shooter_assets/img/icons/grenade.png").convert_alpha()
+grenade_img = pygame.image.load(resource_path("shooter_assets/img/icons/grenade.png")).convert_alpha()
 
 #pick up boxes
-health_box_image = pygame.image.load("shooter_assets/img/icons/health_box.png").convert_alpha()
+health_box_image = pygame.image.load(resource_path("shooter_assets/img/icons/health_box.png")).convert_alpha()
 health_box_image = pygame.transform.scale(health_box_image, (int(health_box_image.get_width() * 0.75), int(health_box_image.get_height()* 0.75)))
 
-ammo_box_image = pygame.image.load("shooter_assets/img/icons/ammo_box.png").convert_alpha()
+ammo_box_image = pygame.image.load(resource_path("shooter_assets/img/icons/ammo_box.png")).convert_alpha()
 ammo_box_image = pygame.transform.scale(ammo_box_image, (int(ammo_box_image.get_width() * 0.75), int(ammo_box_image.get_height()* 0.75)))
 
-grenade_box_image = pygame.image.load("shooter_assets/img/icons/grenade_box.png").convert_alpha()
+grenade_box_image = pygame.image.load(resource_path("shooter_assets/img/icons/grenade_box.png")).convert_alpha()
 grenade_box_image = pygame.transform.scale(grenade_box_image, (int(grenade_box_image.get_width() * 0.75), int(grenade_box_image.get_height()* 0.75)))
 
 item_boxes = {
@@ -192,10 +202,10 @@ class Player(pygame.sprite.Sprite):
             # reest temporary list of images
             temp_list = []
             #count number of files in the folder
-            number_of_frames = len(os.listdir(f"shooter_assets/img/{self.char_type}/{animation}"))
+            number_of_frames = len(os.listdir(resource_path(f"shooter_assets/img/{self.char_type}/{animation}")))
             
             for i in range(number_of_frames):
-                player_img = pygame.image.load(f"shooter_assets/img/{self.char_type}/{animation}/{i}.png").convert_alpha()
+                player_img = pygame.image.load(resource_path(f"shooter_assets/img/{self.char_type}/{animation}/{i}.png")).convert_alpha()
                 player_img = pygame.transform.scale(player_img, (int(player_img.get_width() * scale), int(player_img.get_height()* scale)))
                 temp_list.append(player_img)
             self.animation_list.append(temp_list)
@@ -657,7 +667,7 @@ class Explosion(pygame.sprite.Sprite):
         #handle explosion images
         self.images = []
         for num in range(1,6):
-            img = pygame.image.load(f"shooter_assets/img/explosion/exp{num}.png").convert_alpha()
+            img = pygame.image.load(resource_path(f"shooter_assets/img/explosion/exp{num}.png")).convert_alpha()
             img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
             self.images.append(img)
         
@@ -779,7 +789,7 @@ for row in range(rows):
     world_data.append(r)
 
 # load in level data and create world
-with open(f"shooter_assets/level{level}_data.csv", newline="") as csvfile:
+with open(resource_path(f"shooter_assets/level{level}_data.csv"), newline="") as csvfile:
     reader = csv.reader(csvfile, delimiter=",")
     for x, row in enumerate(reader):
         for y, tile in enumerate(row):
@@ -833,7 +843,7 @@ async def main():
                     # reload level 1 data for fresh start next time
                     bg_scroll = 0
                     world_data = reset_level()
-                    with open(f"shooter_assets/level{level}_data.csv", newline="") as csvfile:
+                    with open(resource_path(f"shooter_assets/level{level}_data.csv"), newline="") as csvfile:
                         reader = csv.reader(csvfile, delimiter=",")
                         for x, row in enumerate(reader):
                             for y, tile in enumerate(row):
@@ -945,7 +955,7 @@ async def main():
                         world_data = reset_level()
                         
                         # load in level data and create world
-                        with open(f"shooter_assets/level{level}_data.csv", newline="") as csvfile:
+                        with open(resource_path(f"shooter_assets/level{level}_data.csv"), newline="") as csvfile:
                             reader = csv.reader(csvfile, delimiter=",")
                             for x, row in enumerate(reader):
                                 for y, tile in enumerate(row):
@@ -971,7 +981,7 @@ async def main():
                         world_data = reset_level()
                         
                         # load in level data and create world
-                        with open(f"shooter_assets/level{level}_data.csv", newline="") as csvfile:
+                        with open(resource_path(f"shooter_assets/level{level}_data.csv"), newline="") as csvfile:
                             reader = csv.reader(csvfile, delimiter=",")
                             for x, row in enumerate(reader):
                                 for y, tile in enumerate(row):
