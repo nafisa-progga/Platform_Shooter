@@ -44,7 +44,7 @@ grenade_thrown = False
 #button images
 start_img = pygame.image.load("shooter_assets/img/start_btn.png").convert_alpha()
 exit_img = pygame.image.load("shooter_assets/img/exit_btn.png").convert_alpha()
-#start_img = pygame.image.load("shooter_assets/img/start_btn.png").convert_alpha()
+restart_img = pygame.image.load("shooter_assets/img/restart_btn.png").convert_alpha()
 
 # background
 pine1_img = pygame.image.load("shooter_assets/img/background/pine1.png").convert_alpha()
@@ -128,6 +128,26 @@ def draw_bg():
         # Dirt layers underneath (tile 3) spanning down to the bottom of the screen
         #for y in range(ground_y + tile_width, screen_height, tile_width):
             #screen.blit(img_list[3], (x, y))
+
+
+# function to reset level
+def reset_level():
+    enemy_group.empty()
+    bullet_group.empty()
+    grenade_group.empty()
+    explosion_group.empty()
+    item_box_group.empty()
+    decoration_group.empty()
+    water_group.empty()
+    exit_group.empty()
+    
+    # create empty tile list - for new level even tough not needed for restart
+    data = []
+    for row in range(rows):
+        r = [-1]*cols
+        data.append(r)
+    
+    return data
 
 
 class Player(pygame.sprite.Sprite):
@@ -712,6 +732,7 @@ class Button():
 # create buttons
 start_button = Button(screen_width // 2 - 130, screen_height // 2 - 150, start_img, 1)
 exit_button = Button(screen_width // 2 - 110, screen_height // 2 + 50, exit_img, 1)
+restart_button = Button(screen_width // 2 - 100, screen_height // 2 - 50, restart_img, 2)
 
 
 #create sprite groups
@@ -864,6 +885,22 @@ while run:
             bg_scroll -= screen_scroll
             
             #print(screen_scroll)
+            
+        else:  # player not alive, died
+            screen_scroll = 0
+            if restart_button.draw(screen):
+                bg_scroll = 0
+                world_data = reset_level()
+                
+                # load in level data and create world
+                with open(f"shooter_assets/level{level}_data.csv", newline="") as csvfile:
+                    reader = csv.reader(csvfile, delimiter=",")
+                    for x, row in enumerate(reader):
+                        for y, tile in enumerate(row):
+                            world_data[x][y] = int(tile)
+                
+                world = World()
+                player, health_bar = world.process_data(world_data)
     
     
     for event in pygame.event.get():
@@ -900,6 +937,7 @@ while run:
             if event.key == pygame.K_q:
                 grenade_button = False
                 grenade_thrown = False
+
 
         # Mouse clicks
         if event.type == pygame.MOUSEBUTTONDOWN:
