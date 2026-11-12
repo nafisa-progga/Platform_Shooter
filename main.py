@@ -21,6 +21,7 @@ gravity = 0.75
 #tile_size = 50
 #ground_y = 400
 level = 1
+max_levels = 3
 rows = 16
 cols = 150
 tile_size = screen_height // rows
@@ -271,6 +272,10 @@ class Player(pygame.sprite.Sprite):
                     self.in_air = False
                     dy = tile[1].top - self.rect.bottom
         
+        # check for collision with exit
+        level_complete = False
+        if pygame.sprite.spritecollide(self, exit_group, False):
+            level_complete = True
         
         # check for collision with water
         if pygame.sprite.spritecollide(self, water_group, False):
@@ -299,7 +304,7 @@ class Player(pygame.sprite.Sprite):
                 screen_scroll = -dx
                 
         #print(screen_scroll)
-        return screen_scroll
+        return screen_scroll, level_complete
     
     
     
@@ -881,10 +886,25 @@ while run:
             else:
                 player.update_action(0) #0: idle
             
-            screen_scroll = player.move(moving_left, moving_right)
+            screen_scroll, level_complete = player.move(moving_left, moving_right)
             bg_scroll -= screen_scroll
             
+            # check if the player has completed the level
+            if level_complete:
+                level += 1
+                bg_scroll = 0
+                world_data = reset_level()
+                
+                if level <= max_levels:
+                    # load in level data and create world
+                    with open(f"shooter_assets/level{level}_data.csv", newline="") as csvfile:
+                        reader = csv.reader(csvfile, delimiter=",")
+                        for x, row in enumerate(reader):
+                            for y, tile in enumerate(row):
+                                world_data[x][y] = int(tile)
+            
             #print(screen_scroll)
+            
             
         else:  # player not alive, died
             screen_scroll = 0
