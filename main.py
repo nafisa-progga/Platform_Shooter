@@ -132,15 +132,15 @@ def draw_text(text, font, text_color, x , y):
 
 
     
-#draw background
+#draw background (rounded coordinates to eliminate sub-pixel gaps/seams)
 def draw_bg():
     screen.fill(sage_green)
     width = sky_img.get_width()
-    for x in range(6):
-        screen.blit(sky_img, (( x * width) - bg_scroll * 0.5,  0))
-        screen.blit(mountain_img, (( x * width) - bg_scroll * 0.6, screen_height - mountain_img.get_height() - 300 ) )
-        screen.blit(pine1_img, (( x * width) - bg_scroll * 0.7, screen_height - pine1_img.get_height() - 150 ) )
-        screen.blit(pine2_img, (( x * width) - bg_scroll * 0.8, screen_height - pine2_img.get_height() ) )
+    for x in range(-1, 6):
+        screen.blit(sky_img, (int(( x * width) - bg_scroll * 0.5),  0))
+        screen.blit(mountain_img, (int(( x * width) - bg_scroll * 0.6), screen_height - mountain_img.get_height() - 300 ) )
+        screen.blit(pine1_img, (int(( x * width) - bg_scroll * 0.7), screen_height - pine1_img.get_height() - 150 ) )
+        screen.blit(pine2_img, (int(( x * width) - bg_scroll * 0.8), screen_height - pine2_img.get_height() ) )
     
     
     # Draw tiled ground using tile 0 and tile 3 across the screen width - temporary
@@ -861,6 +861,7 @@ async def main():
             if start_button.draw(screen):
                 start_game = True
                 start_intro = True
+                pygame.event.clear() # Clear event queue so start click doesn't trigger shoot
             if exit_button.draw(screen):
                 run = False
         
@@ -971,6 +972,11 @@ async def main():
                             for x, row in enumerate(reader):
                                 for y, tile in enumerate(row):
                                     world_data[x][y] = int(tile)
+                        
+                        world = World()
+                        player, health_bar = world.process_data(world_data)
+                    else:
+                        level = max_levels
                 
                 #print(screen_scroll)
                 
@@ -1036,10 +1042,10 @@ async def main():
 
             # Mouse clicks
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1 and player.alive:  # Left click pressed, # 1 means left mouse button
+                if event.button == 1 and player.alive and start_game:  # Left click pressed, # 1 means left mouse button
                     shoot = True
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 3 and player.alive:  # Right click pressed, # 3 means right mouse button
+                if event.button == 3 and player.alive and start_game:  # Right click pressed, # 3 means right mouse button
                     grenade_button = True
                     grenade_thrown = False
                     
