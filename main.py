@@ -252,6 +252,15 @@ class Player(pygame.sprite.Sprite):
                     dy = tile[1].top - self.rect.bottom
         
         
+        # check for collision with water
+        if pygame.sprite.spritecollide(self, water_group, False):
+            self.health = 0
+            
+        # check if fallen off the map
+        if self.rect.bottom > screen_height:
+            self.health = 0
+        
+        
         # check if going off the edges of the screen
         if self.char_type == "player":
             if self.rect.left + dx < 0 or self.rect.right + dx > screen_width:
