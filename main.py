@@ -32,6 +32,7 @@ scroll_threshold = 200
 screen_scroll = 0
 bg_scroll = 0
 start_game = False
+start_intro = False
 
 
 #define player action variables
@@ -766,13 +767,24 @@ class ScreenFade():
     def fade(self):
         fade_complete = False
         self.fade_counter += self.speed
-        pygame.draw.rect(screen, self.colour, (0, 0, screen_width, 0 + self.fade_counter))
+        
+        if self.direction == 1: # whole screen fade
+            pygame.draw.rect(screen, self.colour, (0 - self.fade_counter,0, screen_width // 2, screen_height ) )
+            pygame.draw.rect(screen, self.colour, ( screen_width // 2 + self.fade_counter, 0, screen_width, screen_height))
+            pygame.draw.rect(screen, self.colour, (0, 0 - self.fade_counter, screen_width, screen_height // 2 ))
+            pygame.draw.rect(screen, self.colour, (0, screen_height // 2 + self.fade_counter, screen_width, screen_height ))
+            
+        if self.direction == 2: # vertical screen fade down
+            pygame.draw.rect(screen, self.colour, (0, 0, screen_width, 0 + self.fade_counter))
+        
         if self.fade_counter >= screen_width:
             fade_complete = True
         
         return fade_complete
 
+
 # create screen fades
+intro_fade = ScreenFade(1, black, 8)
 death_fade = ScreenFade(2, pink, 8)
 
 
@@ -842,6 +854,7 @@ while run:
         #add buttons
         if start_button.draw(screen):
             start_game = True
+            start_intro = True
         if exit_button.draw(screen):
             run = False
     
@@ -905,6 +918,13 @@ while run:
         exit_group.draw(screen)
 
 
+        #show intro
+        if start_intro == True:
+            if intro_fade.fade():
+                start_intro = False
+                intro_fade.fade_counter = 0
+        
+        
         #update player actions
         if player.alive:
             
@@ -933,6 +953,7 @@ while run:
             
             # check if the player has completed the level
             if level_complete:
+                start_intro = True
                 level += 1
                 bg_scroll = 0
                 world_data = reset_level()
@@ -950,8 +971,12 @@ while run:
             
         else:  # player not alive, died
             screen_scroll = 0
+            
             if death_fade.fade():
                 if restart_button.draw(screen):
+                    
+                    death_fade.fade_counter = 0
+                    start_intro = True
                     bg_scroll = 0
                     world_data = reset_level()
                     
